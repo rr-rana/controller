@@ -50,7 +50,8 @@
     "companion:install": "npm --prefix companion install",
     "companion:start": "npm --prefix companion start",
     "companion:test": "npm --prefix companion test",
-    "build:apk": "npx eas-cli@latest build -p android --profile preview"
+    "build:apk": "npx eas-cli@latest build -p android --profile preview",
+    "install:apk": "node scripts/install-apk.js"
   },
   "private": true
 }
