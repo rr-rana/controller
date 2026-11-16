@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ETS2 RR Companion</title>
+<style>
+  :root {
+    --bg: #0d0f12; --panel: #15181d; --panel2: #1b1f26; --line: #262b33;
+    --text: #e8e6e1; --dim: #8b919b; --gold: #e8b21e; --ok: #3ccf6e; --bad: #ff5d52; --warn: #f0a52b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .addr { margin-left: auto; color: var(--dim); font-size: 13px; }
+  .badge { color: var(--gold); font-weight: 700; letter-spacing: .5px; }
+  main { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; padding: 16px 20px 40px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  section h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row .k { width: 110px; color: var(--dim); flex-shrink: 0; }
+  .row .v { flex: 1; overflow-wrap: anywhere; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--bad); vertical-align: 1px; }
+  .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); }
+  .bar { position: relative; height: 18px; background: var(--panel2); border-radius: 4px; overflow: hidden; margin: 4px 0 10px; }
+  .bar > i { position: absolute; top: 0; bottom: 0; background: var(--gold); }
+  .bar.center::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #fff5; }
+  .bar span { position: absolute; right: 6px; top: 0; font-size: 12px; color: #fff; mix-blend-mode: difference; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 3px 9px; border-radius: 12px; background: var(--panel2); color: var(--dim); font-size: 12px; border: 1px solid var(--line); }
+  .chip.on { background: var(--gold); color: #111; border-color: var(--gold); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 4px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td:first-child { color: var(--dim); }
+  select, input { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 5px; padding: 3px 6px; font: inherit; }
+  input.n { width: 64px; }
+  button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  button.primary { background: var(--gold); color: #111; border-color: var(--gold); font-weight: 600; }
+  .log { font: 12px/1.5 Consolas, monospace; color: var(--dim); max-height: 260px; overflow: auto; white-space: pre-wrap; }
+  .big { font-size: 26px; font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .muted { color: var(--dim); font-size: 12px; }
+  .wide { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">RR</span><h1>ETS2 Controller – Companion</h1>
+  <span id="conn" class="muted">connecting…</span>
+  <span class="addr" id="addr"></span>
+</header>
+<main>
+  <section>
+    <h2>Phone</h2>
+    <div id="phone"></div>
+  </section>
+  <section>
+    <h2>Components</h2>
+    <div id="components"></div>
+  </section>
+  <section>
+    <h2>Live input</h2>
+    <div class="muted">Steering</div><div class="bar center" id="steer"><i></i><span></span></div>
+    <div class="muted">Throttle</div><div class="bar" id="thr"><i></i><span></span></div>
+    <div class="muted">Brake</div><div class="bar" id="brk"><i></i><span></span></div>
+    <div class="muted" style="margin-bottom:4px">Buttons held</div>
+    <div class="chips" id="held"></div>
+  </section>
+  <section>
+    <h2>Telemetry (from ETS2)</h2>
+    <div id="tel"></div>
+  </section>
+  <section class="wide">
+    <h2>Button / key mapping</h2>
+    <p class="muted" style="margin-top:0">
+      Default: every action is a vJoy button – bind it once in ETS2 (Options → Keys &amp; Buttons) by pressing the
+      button on the phone, or use <b>Test</b> below (it fires after the delay so you can click into ETS2's binding prompt).
+      Choose <b>Key</b> to send a keyboard key instead (ETS2 must be the focused window).
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      Test delay <select id="delay"><option value="0">0 s</option><option value="3000" selected>3 s</option><option value="5000">5 s</option></select>
+      Camera look mode <select id="cammode"><option value="mouse">Mouse (ETS2 free look)</option><option value="axis">vJoy axes RX/RY</option></select>
+      <span style="flex:1"></span>
+      <button id="reset">Reset to defaults</button>
+      <button class="primary" id="save">Save mapping</button>
+    </div>
+    <table id="bindings"></table>
+  </section>
+  <section class="wide">
+    <h2>Events</h2>
+    <div class="log" id="log"></div>
+  </section>
+</main>
+<script>
+const LABELS = {
+  horn: 'Horn', pass: 'Pass light (Light horn)', indicatorLeft: 'Left indicator', indicatorRight: 'Right indicator',
+  hazard: 'Hazard lights', headlights: 'Light modes', highBeam: 'High beam', beacon: 'Beacon', wipers: 'Wipers',
+  parkingBrake: 'Parking brake', cruiseControl: 'Cruise control', camera: 'Next camera', shiftUp: 'Shift up (→ D)',
+  shiftDown: 'Shift down (→ R)', neutral: 'Shift to neutral',
+};
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dot = (ok, warn) => `<span class="dot ${ok ? 'ok' : warn ? 'warn' : ''}"></span>`;
+const row = (k, v) => `<div class="row"><div class="k">${esc(k)}</div><div class="v">${v}</div></div>`;
+let ws, editing = false, bindingsDraft = null, lastBindingsJson = '';
+
+function bar(el, value, centered) {
+  const i = el.querySelector('i'), s = el.querySelector('span');
+  if (centered) {
+    const v = Math.max(-1, Math.min(1, value));
+    i.style.left = (v < 0 ? 50 + v * 50 : 50) + '%'; i.style.width = Math.abs(v) * 50 + '%';
+    s.textContent = (v * 100).toFixed(0) + '%';
+  } else {
+    i.style.left = '0'; i.style.width = value * 100 + '%'; s.textContent = (value * 100).toFixed(0) + '%';
+  }
+}
+
+function renderBindings(map) {
+  const t = $('bindings');
+  t.innerHTML = Object.keys(LABELS).map((a) => {
+    const b = map[a] || { type: 'none' };
+    return `<tr data-a="${a}"><td>${esc(LABELS[a])}</td>
+      <td><select class="type"><option value="vjoy"${b.type === 'vjoy' ? ' selected' : ''}>vJoy button</option>
+        <option value="key"${b.type === 'key' ? ' selected' : ''}>Key</option>
+        <option value="none"${b.type === 'none' ? ' selected' : ''}>None</option></select></td>
+      <td><input class="n val" value="${esc(b.type === 'vjoy' ? b.button : b.type === 'key' ? b.key : '')}" ${b.type === 'none' ? 'disabled' : ''} placeholder="${b.type === 'key' ? 'e.g. H' : '#'}"></td>
+      <td><button class="test">Test</button></td></tr>`;
+  }).join('');
+}
+
+function readBindings() {
+  const map = {};
+  $('bindings').querySelectorAll('tr').forEach((tr) => {
+    const a = tr.dataset.a, type = tr.querySelector('.type').value, val = tr.querySelector('.val').value.trim();
+    map[a] = type === 'vjoy' ? { type, button: parseInt(val, 10) || 1 } : type === 'key' ? { type, key: val || 'H' } : { type: 'none' };
+  });
+  return map;
+}
+
+$('bindings').addEventListener('input', (e) => {
+  editing = true;
+  if (e.target.classList.contains('type')) {
+    const inp = e.target.closest('tr').querySelector('.val');
+    inp.disabled = e.target.value === 'none';
+    inp.placeholder = e.target.value === 'key' ? 'e.g. H' : '#';
+  }
+});
+$('bindings').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('test')) return;
+  ws?.send(JSON.stringify({ t: 'pulse', action: e.target.closest('tr').dataset.a, delayMs: Number($('delay').value) }));
+});
+$('save').onclick = () => { ws?.send(JSON.stringify({ t: 'setBindings', map: readBindings() })); editing = false; };
+$('reset').onclick = () => { if (confirm('Reset all mappings to defaults?')) { ws?.send(JSON.stringify({ t: 'resetBindings' })); editing = false; } };
+$('cammode').onchange = (e) => ws?.send(JSON.stringify({ t: 'setCameraMode', mode: e.target.value }));
+
+function render(s) {
+  $('addr').textContent = `${s.host} · ${s.addresses.map((a) => a + ':' + s.port).join(', ') || 'no LAN address'}`;
+  const p = s.phone;
+  $('phone').innerHTML = p
+    ? row('Status', `${dot(!p.failsafe, p.failsafe)}${p.failsafe ? 'Connected – input stalled (failsafe active)' : 'Connected'}`) +
+      row('Device', esc(p.device)) + row('Link', `${p.link.toUpperCase()} (${esc(p.remote)})`) +
+      row('Input rate', `${p.fps} frames/s · last ${p.frameAgeMs} ms ago`) +
+      row('Since', new Date(p.since).toLocaleTimeString())
+    : row('Status', `${dot(false)}Waiting for phone…`) +
+      row('USB', 'Plug in the phone with USB debugging on, choose USB in the app.') +
+      row('Wi-Fi', 'Same network, choose Wi-Fi in the app (auto-discovery or enter IP above).');
+  const st = s.status;
+  $('components').innerHTML =
+    row('vJoy', dot(st.vjoy.ok, /WARNING/.test(st.vjoy.message)) + esc(st.vjoy.message)) +
+    row('Keyboard', dot(st.keyboard.ok) + esc(st.keyboard.message)) +
+    row('Telemetry', dot(st.telemetry.ok) + esc(st.telemetry.message)) +
+    row('USB / adb', s.adb ? dot(s.adb.devices.some((d) => d.reversed), s.adb.devices.length > 0) + esc(s.adb.message) : 'disabled (autoAdbReverse=false)') +
+    row('Camera', st.cameraMode === 'mouse' ? 'Mouse free-look' : 'vJoy RX/RY axes');
+  if (document.activeElement !== $('cammode')) $('cammode').value = st.cameraMode;
+
+  const f = s.frame || { steer: 0, throttle: 0, brake: 0 };
+  bar($('steer'), f.steer, true); bar($('thr'), f.throttle); bar($('brk'), f.brake);
+  $('held').innerHTML = Object.keys(LABELS).map((a) => `<span class="chip ${s.held.includes(a) ? 'on' : ''}">${esc(LABELS[a])}</span>`).join('');
+
+  const t = s.telemetry;
+  if (t.ok) {
+    const d = t.data;
+    const gear = d.gear > 0 ? 'D' + d.gear : d.gear < 0 ? 'R' + -d.gear : 'N';
+    $('tel').innerHTML = `<div class="grid2">
+      <div><div class="muted">Speed</div><div class="big">${d.speedKmh.toFixed(0)} <small>km/h</small></div></div>
+      <div><div class="muted">RPM</div><div class="big">${d.rpm.toFixed(0)}</div></div>
+      <div><div class="muted">Fuel</div><div class="big">${d.fuelCapacity ? ((d.fuel / d.fuelCapacity) * 100).toFixed(0) : '–'}%</div></div>
+      <div><div class="muted">Gear</div><div class="big">${gear}</div></div></div>
+      <div class="chips" style="margin-top:10px">${[
+        ['Paused', d.paused], ['Engine', d.engineOn], ['Park brake', d.parkBrake], ['◀ Blinker', d.blinkerLeft], ['Blinker ▶', d.blinkerRight],
+        ['Hazard', d.hazard], ['Parking lights', d.lightsParking], ['Low beam', d.lowBeam], ['High beam', d.highBeam],
+        ['Beacon', d.beacon], ['Wipers', d.wipers], ['Cruise ' + (d.cruiseControl ? d.cruiseSpeedKmh + ' km/h' : ''), d.cruiseControl],
+      ].map(([l, on]) => `<span class="chip ${on ? 'on' : ''}">${esc(l)}</span>`).join('')}</div>
+      <div class="muted" style="margin-top:8px">${esc(d.game.toUpperCase())} ${esc(t.gameVersion)} · shifter: ${esc(d.shifterType || '?')}</div>`;
+  } else {
+    $('tel').innerHTML = row('Status', dot(false) + esc(t.why)) +
+      row('Fix', 'Copy <code>scs-telemetry.dll</code> (Win64) to <code>…\\Euro Truck Simulator 2\\bin\\win_x64\\plugins\\</code> and start ETS2.');
+  }
+
+  const bj = JSON.stringify(s.bindings);
+  if (!editing && bj !== lastBindingsJson) { lastBindingsJson = bj; renderBindings(s.bindings); }
+  const log = $('log'), atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
+  log.textContent = s.events.join('\n');
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ui`);
+  ws.onopen = () => { $('conn').innerHTML = `${dot(true)}companion running`; };
+  ws.onmessage = (e) => { const s = JSON.parse(e.data); if (s.t === 'snapshot') render(s); };
+  ws.onclose = () => { $('conn').innerHTML = `${dot(false)}companion stopped – restart it`; setTimeout(connect, 1500); };
+}
+connect();
+</script>
+</body>
+</html>

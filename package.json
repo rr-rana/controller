@@ -1,18 +1,22 @@
 {
-  "name": "controller",
+  "name": "ets2-rr-controller",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/ui": "~58.0.28",
     "expo": "~58.0.25",
+    "expo-build-properties": "~58.0.12",
     "expo-constants": "~58.0.16",
     "expo-device": "~58.0.5",
+    "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.12",
     "expo-glass-effect": "~58.0.5",
     "expo-haptics": "~58.0.8",
     "expo-image": "~58.0.18",
     "expo-keep-awake": "~58.0.4",
     "expo-linking": "~58.0.17",
+    "expo-navigation-bar": "~58.0.4",
+    "expo-network": "~58.0.5",
     "expo-router": "~58.0.31",
     "expo-screen-orientation": "~58.0.4",
     "expo-splash-screen": "~58.0.14",
@@ -33,15 +37,20 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "companion:install": "npm --prefix companion install",
+    "companion:start": "npm --prefix companion start",
+    "companion:test": "npm --prefix companion test",
+    "build:apk": "npx eas-cli@latest build -p android --profile preview"
   },
   "private": true
 }
